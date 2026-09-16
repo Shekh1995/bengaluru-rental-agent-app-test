@@ -38,6 +38,18 @@ def test_filter_properties_by_bhk():
         assert prop["bhk"] == 2
 
 
+def test_filter_properties_respects_zero_max_rent():
+    response = client.get("/api/properties?max_rent=0")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_filter_properties_excludes_unknown_work_location():
+    response = client.get("/api/properties?work_location=Unknown%20Office")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_calculate_endpoint():
     payload = {
         "rent_monthly": 28000,
@@ -51,6 +63,19 @@ def test_calculate_endpoint():
     data = response.json()
     assert data["total_monthly_burn"] == 30000
     assert data["total_initial_move_in_cost"] == 151500
+
+
+def test_calculate_rejects_negative_costs():
+    response = client.post(
+        "/api/calculate",
+        json={"rent_monthly": -1, "deposit": 120000, "maintenance": 2000},
+    )
+    assert response.status_code == 422
+
+
+def test_filter_rejects_negative_commute_limit():
+    response = client.get("/api/properties?max_commute_mins=-1")
+    assert response.status_code == 422
 
 
 def test_get_areas():

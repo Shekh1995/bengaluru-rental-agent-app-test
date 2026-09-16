@@ -1,21 +1,21 @@
 ﻿<!DOCTYPE html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"UTF-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bengaluru Rental Property AI Agent</title>
-  <link rel=\"stylesheet\" href=\"/static/styles.css\">
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <div class=\"container\">
+  <div class="container">
     <header>
       <div>
-        <span class=\"logo-badge\">⚡ Cloud-Native Deployable Agent</span>
+        <span class="logo-badge">⚡ Cloud-Native Deployable Agent</span>
         <h1>Bengaluru Rental Property Agent</h1>
-        <p style=\"color: #94a3b8; font-size: 0.95rem;\">Verified Listings, Financial Intelligence & Commute Optimization</p>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Verified Listings, Financial Intelligence & Commute Optimization</p>
       </div>
-      <div class=\"pipeline-status\">
-        <span class=\"pulse\"></span>
+      <div class="pipeline-status">
+        <span class="pulse"></span>
         <span>CI/CD Live: Pipeline Ready</span>
       </div>
     </header>
@@ -23,58 +23,58 @@
     <div class=\"grid-layout\">
       <!-- Filter Sidebar -->
       <aside>
-        <div class=\"sidebar-card\">
+        <div class="sidebar-card">
           <h3>🔍 Search Criteria</h3>
-          <form id=\"searchForm\">
-            <div class=\"form-group\">
-              <label for=\"bhkFilter\">BHK Configuration</label>
-              <select id=\"bhkFilter\">
-                <option value=\"\">All Configurations</option>
-                <option value=\"2\" selected>2 BHK</option>
-                <option value=\"3\">3 BHK</option>
+          <form id="searchForm">
+            <div class="form-group">
+              <label for="bhkFilter">BHK Configuration</label>
+              <select id="bhkFilter">
+                <option value="">All Configurations</option>
+                <option value="2" selected>2 BHK</option>
+                <option value="3">3 BHK</option>
               </select>
             </div>
 
             <div class=\"form-group\">
-              <label for=\"maxRent\">Max Monthly Rent (₹)</label>
-              <input type=\"number\" id=\"maxRent\" value=\"35000\" step=\"1000\">
+              <label for="maxRent">Max Monthly Rent (₹)</label>
+              <input type="number" id="maxRent" value="35000" step="1000">
             </div>
 
             <div class=\"form-group\">
-              <label for=\"areaFilter\">Target Locality</label>
-              <select id=\"areaFilter\">
-                <option value=\"\">All Areas (Balanced Search)</option>
-                <option value=\"Banashankari\">Banashankari 3rd Stage</option>
-                <option value=\"Sahakara\">Sahakara Nagar</option>
-                <option value=\"Whitefield\">Whitefield (Borewell Rd)</option>
-                <option value=\"HSR\">HSR Layout (Sector 2)</option>
-                <option value=\"JP Nagar\">JP Nagar (Phase 6)</option>
+              <label for="areaFilter">Target Locality</label>
+              <select id="areaFilter">
+                <option value="">All Areas (Balanced Search)</option>
+                <option value="Banashankari">Banashankari 3rd Stage</option>
+                <option value="Sahakara">Sahakara Nagar</option>
+                <option value="Whitefield">Whitefield (Borewell Rd)</option>
+                <option value="HSR">HSR Layout (Sector 2)</option>
+                <option value="JP Nagar">JP Nagar (Phase 6)</option>
               </select>
             </div>
 
             <div class=\"form-group\">
-              <label for=\"workLocation\">Work / Tech Hub</label>
-              <select id=\"workLocation\">
-                <option value=\"\">Any Destination</option>
-                <option value=\"Bellandur\">Bellandur / EcoSpace ORR</option>
-                <option value=\"Manyata\">Manyata Tech Park</option>
-                <option value=\"CBD\">CBD / MG Road</option>
-                <option value=\"ITPL\">ITPL / Whitefield Corridor</option>
-                <option value=\"Electronic City\">Electronic City</option>
+              <label for="workLocation">Work / Tech Hub</label>
+              <select id="workLocation">
+                <option value="">Any Destination</option>
+                <option value="Bellandur">Bellandur / EcoSpace ORR</option>
+                <option value="Manyata">Manyata Tech Park</option>
+                <option value="CBD">CBD / MG Road</option>
+                <option value="ITPL">ITPL / Whitefield Corridor</option>
+                <option value="Electronic City">Electronic City</option>
               </select>
             </div>
 
-            <button type=\"submit\" class=\"btn-primary\">Apply Agent Filters</button>
+            <button type="submit" class="btn-primary">Apply Agent Filters</button>
           </form>
         </div>
       </aside>
 
       <!-- Main Property Grid -->
       <main>
-        <div id=\"propertiesCount\" style=\"margin-bottom: 16px; font-size: 0.95rem; color: #94a3b8;\">
+        <div id="propertiesCount" style="margin-bottom: 16px; font-size: 0.95rem; color: #94a3b8;">
           Scanning verified properties...
         </div>
-        <div id=\"propertiesGrid\" class=\"properties-grid\">
+        <div id="propertiesGrid" class="properties-grid">
           <!-- Dynamic Property Cards injected via app.js -->
         </div>
       </main>
@@ -82,18 +82,18 @@
   </div>
 
   <!-- Calculator Modal -->
-  <div id=\"calcModal\" class=\"modal-overlay\">
-    <div class=\"modal-content\">
-      <div class=\"modal-header\">
-        <h3 id=\"modalTitle\" style=\"color: #f8fafc;\">Financial Move-in Breakdown</h3>
-        <button id=\"closeModalBtn\" style=\"background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;\">&times;</button>
+  <div id="calcModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle" style="color: #f8fafc;">Financial Move-in Breakdown</h3>
+        <button id="closeModalBtn" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
       </div>
-      <div id=\"modalBody\">
+      <div id="modalBody">
         <!-- Dynamic Breakdown Content -->
       </div>
     </div>
   </div>
 
-  <script src=\"/static/app.js\"></script>
+  <script src="/static/app.js"></script>
 </body>
 </html>

@@ -35,19 +35,19 @@ class PropertyListing(BaseModel):
     work_commutes: List[CommuteInfo]
     area_character: str
     nearby_essentials: List[str]
-    verification_flags: List[str] = []
+    verification_flags: List[str] = Field(default_factory=list)
     google_maps_url: str
     listing_source: str
     locality_metrics: LocalityMetrics
 
 
 class CostBreakdownRequest(BaseModel):
-    rent_monthly: int
-    deposit: int
-    maintenance: int
-    brokerage: int = 0
-    agreement_charges: int = 1500
-    other_charges: int = 0
+    rent_monthly: int = Field(..., ge=0)
+    deposit: int = Field(..., ge=0)
+    maintenance: int = Field(..., ge=0)
+    brokerage: int = Field(0, ge=0)
+    agreement_charges: int = Field(1500, ge=0)
+    other_charges: int = Field(0, ge=0)
 
 
 class CostBreakdownResponse(BaseModel):
@@ -60,10 +60,10 @@ class CostBreakdownResponse(BaseModel):
 
 
 class SearchFilter(BaseModel):
-    min_rent: Optional[int] = 0
-    max_rent: Optional[int] = 100000
-    bhk: Optional[int] = None
+    min_rent: Optional[int] = Field(0, ge=0)
+    max_rent: Optional[int] = Field(100000, ge=0)
+    bhk: Optional[int] = Field(None, ge=1)
     area: Optional[str] = None
     furnishing: Optional[str] = None
     work_location: Optional[str] = None
-    max_commute_mins: Optional[int] = None
+    max_commute_mins: Optional[int] = Field(None, ge=0)

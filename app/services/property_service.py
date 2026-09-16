@@ -159,9 +159,9 @@ class PropertyService:
     def filter_properties(filters: SearchFilter) -> List[PropertyListing]:
         results = []
         for prop in SAMPLE_PROPERTIES:
-            if filters.min_rent and prop.rent_monthly < filters.min_rent:
+            if filters.min_rent is not None and prop.rent_monthly < filters.min_rent:
                 continue
-            if filters.max_rent and prop.rent_monthly > filters.max_rent:
+            if filters.max_rent is not None and prop.rent_monthly > filters.max_rent:
                 continue
             if filters.bhk and prop.bhk != filters.bhk:
                 continue
@@ -174,8 +174,12 @@ class PropertyService:
                     (c for c in prop.work_commutes if filters.work_location.lower() in c.destination.lower()),
                     None
                 )
-                if filters.max_commute_mins and matching_commute:
-                    if matching_commute.travel_time_mins > filters.max_commute_mins:
-                        continue
+                if matching_commute is None:
+                    continue
+                if (
+                    filters.max_commute_mins is not None
+                    and matching_commute.travel_time_mins > filters.max_commute_mins
+                ):
+                    continue
             results.append(prop)
         return results

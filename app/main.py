@@ -45,11 +45,11 @@ def readiness_check():
 def search_properties(
     min_rent: int = Query(0, ge=0),
     max_rent: int = Query(100000, ge=0),
-    bhk: Optional[int] = Query(None),
+    bhk: Optional[int] = Query(None, ge=1),
     area: Optional[str] = Query(None),
     furnishing: Optional[str] = Query(None),
     work_location: Optional[str] = Query(None),
-    max_commute_mins: Optional[int] = Query(None)
+    max_commute_mins: Optional[int] = Query(None, ge=0)
 ):
     filters = SearchFilter(
         min_rent=min_rent,
