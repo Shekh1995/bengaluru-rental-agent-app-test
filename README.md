@@ -70,11 +70,23 @@ The test suite covers health/readiness endpoints, the web UI, property filtering
 
 ## 5. Start the application locally
 
-```bash
+Run this from the cloned repository root, the folder containing `app`, `requirements.txt`, and `README.md`.
+
+Windows PowerShell:
+
+```powershell
+cd path\to\bengaluru-rental-agent-app-test
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-After the server starts, open these links on the same computer:
+macOS/Linux:
+
+```bash
+cd path/to/bengaluru-rental-agent-app-test
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Keep this terminal open while using the application. After the server starts, open these links on the same computer:
 
 - [Web UI](http://127.0.0.1:8000/)
 - [Interactive API documentation](http://127.0.0.1:8000/docs)
@@ -82,6 +94,16 @@ After the server starts, open these links on the same computer:
 - [Readiness check](http://127.0.0.1:8000/ready)
 
 Stop the development server with `Ctrl+C`.
+
+If port `8000` is already in use, start the server on another port, for example:
+
+```powershell
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8002
+```
+
+When using another port, replace `8000` with `8002` in each browser link above.
+
+If you see `Could not import module "app.main"`, change directory to the repository root before running the command. If you see `No module named uvicorn`, activate the virtual environment and install the dependencies from steps 2 and 3.
 
 ## 6. Run with Docker Compose
 
