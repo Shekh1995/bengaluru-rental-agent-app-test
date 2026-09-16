@@ -1,92 +1,181 @@
-﻿# 🏢 Bengaluru Rental Property AI Agent — Pipeline Deployable Web App
+﻿# Bengaluru Rental Property AI Agent
 
-A production-ready, cloud-native web application and microservice for automated rental property research, deal calculations, and commute intelligence across Bengaluru.
+A FastAPI web application for searching Bengaluru rental listings, comparing commute estimates, and calculating move-in costs.
 
----
+## Features
 
-## 🚀 Key Features
+- Filter sample listings by BHK, rent, locality, furnishing, and work location.
+- View commute, metro, parking, water reliability, and verification details.
+- Calculate monthly costs, initial move-in cost, deposit ratio, annual projection, and estimated savings.
+- Serve the web UI and API from one FastAPI service.
+- Run locally with Python, Docker Compose, or Kubernetes manifests.
 
-* **⚡ Interactive UI Dashboard:** Real-time property search, filtering by budget, BHK, locality, and tech hub commute times.
-* **💰 Financial Move-In Calculator:** Instant calculation of initial move-in outlay, deposit-to-rent multiplier, and annual savings projection vs. tech corridor market rates.
-* **🛡️ Pre-Token Verification System:** Direct verification flags and checks for water source, municipal electricity sub-meter, and direct owner listings.
-* **🐳 Docker Multi-Stage Build:** Minimal, non-root `python:3.11-slim` image equipped with healthcheck probes.
-* **⚙️ GitHub Actions CI/CD Pipeline:** Fully automated workflow running linting (`flake8`), unit & integration tests (`pytest`), container build & push (`ghcr.io` / Docker Hub), and Kubernetes manifest linting.
-* **☸️ Kubernetes Ready:** Out-of-the-box manifests for `Deployment`, `Service`, and `Ingress` with liveness and readiness probes.
+## Requirements
 
----
+- Python 3.11 or newer
+- Git
+- Docker Desktop, only if using Docker
+- A Kubernetes cluster and `kubectl`, only if deploying to Kubernetes
 
-## 📂 Project Structure
+## 1. Get the code
 
-```
-bengaluru-rental-agent-app/
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml             # GitHub Actions CI/CD pipeline
-├── app/
-│   ├── main.py                   # FastAPI REST API & static file serving
-│   ├── models.py                 # Pydantic schemas
-│   ├── services/
-│   │   ├── property_service.py   # Property catalog & filtering logic
-│   │   └── calculator_service.py # Move-in & deposit financial algorithms
-│   └── static/
-│       ├── index.html            # Single-page application UI
-│       ├── app.js                # Frontend state & async API client
-│       └── styles.css            # Responsive dark/modern styles
-├── k8s/
-│   ├── deployment.yaml           # Kubernetes Deployment manifest
-│   ├── service.yaml              # Kubernetes Service manifest
-│   └── ingress.yaml              # Kubernetes Ingress manifest
-├── tests/
-│   ├── test_api.py               # API endpoint integration tests
-│   └── test_calculator.py        # Calculator business logic unit tests
-├── Dockerfile                    # Multi-stage production container build
-├── docker-compose.yml            # Local orchestration
-├── requirements.txt              # Production runtime dependencies
-└── requirements-dev.txt          # Testing & linting dependencies
-```
-
----
-
-## 🛠️ Local Development & Testing
-
-### 1. Install Dependencies
 ```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+git clone https://github.com/Shekh1995/bengaluru-rental-agent-app-test.git
+cd bengaluru-rental-agent-app-test
 ```
 
-### 2. Run Test Suite
+On Windows PowerShell, use the same commands from the directory where you want to store the project.
+
+## 2. Create a virtual environment
+
+Windows PowerShell:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
 ```bash
-pytest -v tests/
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### 3. Run Web App Locally
+If PowerShell blocks activation, run this once in the current PowerShell session:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+## 3. Install dependencies
+
+Install runtime and development dependencies:
+
 ```bash
-uvicorn app.main:app --reload --port 8000
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
-Open [http://localhost:8000](http://localhost:8000) in your browser.
 
----
+## 4. Run the tests
 
-## 🐳 Docker Deployment
+Run all tests from the repository root:
 
-### Run via Docker Compose:
+```bash
+python -m pytest -q
+```
+
+The test suite covers health/readiness endpoints, the web UI, property filtering, the calculation API, and calculator business rules.
+
+## 5. Start the application locally
+
+```bash
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open these URLs:
+
+- Web UI: http://127.0.0.1:8000/
+- API documentation: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/health
+- Readiness check: http://127.0.0.1:8000/ready
+
+Stop the development server with `Ctrl+C`.
+
+## 6. Run with Docker Compose
+
+Make sure Docker Desktop is running, then execute:
+
 ```bash
 docker compose up --build -d
 ```
 
-### Inspect Container Logs:
+Open http://127.0.0.1:8000/ and check the container health:
+
 ```bash
-docker compose logs -f
+docker compose ps
+docker compose logs -f rental-agent
 ```
 
----
+Stop and remove the container:
 
-## 🚀 CI/CD Pipeline (GitHub Actions)
+```bash
+docker compose down
+```
 
-When pushed to a GitHub repository, the pipeline automatically triggers:
+## 7. Deploy to Kubernetes
 
-1. **Test & Lint:** Executes `flake8` and runs `pytest` test suite.
-2. **Build & Push:** Builds multi-stage Docker container and publishes it to GitHub Container Registry (`ghcr.io`).
-3. **Security Scan:** Runs `Trivy` to audit the container against CVE vulnerabilities.
-4. **Deploy Staging:** Validates Kubernetes manifests and triggers target cluster rolling update.
+The Kubernetes deployment expects an image available at:
+
+```text
+ghcr.io/user/bengaluru-rental-agent:latest
+```
+
+Before deploying, replace that placeholder in `k8s/deployment.yaml` with the image you built and pushed.
+
+Apply the manifests:
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+```
+
+Check the rollout and service:
+
+```bash
+kubectl rollout status deployment/bengaluru-rental-agent
+kubectl get pods,service,ingress
+```
+
+The deployment exposes port `8000` inside the container. The Kubernetes service exposes it on port `80`.
+
+## API examples
+
+List properties:
+
+```text
+GET /api/properties
+```
+
+Filter by BHK and maximum rent:
+
+```text
+GET /api/properties?bhk=2&max_rent=35000
+```
+
+Calculate move-in costs:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/calculate \
+	-H "Content-Type: application/json" \
+	-d '{"rent_monthly":28000,"deposit":120000,"maintenance":2000}'
+```
+
+## Project structure
+
+```text
+app/
+	main.py                         FastAPI application and routes
+	models.py                       Pydantic request and response models
+	services/property_service.py    Listing data and filtering
+	services/calculator_service.py  Move-in cost calculations
+	static/                         HTML, CSS, and browser JavaScript
+tests/                            API and business-logic tests
+k8s/                              Kubernetes manifests
+Dockerfile                        Multi-stage production image
+docker-compose.yml                Local container orchestration
+```
+
+## Continuous integration
+
+The workflow in `.github/workflows/ci-cd.yml` runs on pushes and pull requests targeting `main` or `master`. It:
+
+1. Installs Python dependencies.
+2. Runs Flake8 checks and the Pytest suite with coverage.
+3. Builds and, for non-pull-request pushes, publishes a Docker image to GitHub Container Registry.
+4. Runs a Trivy filesystem security scan.
+5. Counts and validates the Kubernetes manifest files for the staging verification job.
+
+The workflow does not configure cluster credentials or perform a live Kubernetes rollout. Kubernetes deployment remains a separate step using the manifests above.
