@@ -74,12 +74,12 @@ The test suite covers health/readiness endpoints, the web UI, property filtering
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open these URLs:
+After the server starts, open these links on the same computer:
 
-- Web UI: http://127.0.0.1:8000/
-- API documentation: http://127.0.0.1:8000/docs
-- Health check: http://127.0.0.1:8000/health
-- Readiness check: http://127.0.0.1:8000/ready
+- [Web UI](http://127.0.0.1:8000/)
+- [Interactive API documentation](http://127.0.0.1:8000/docs)
+- [Health check](http://127.0.0.1:8000/health)
+- [Readiness check](http://127.0.0.1:8000/ready)
 
 Stop the development server with `Ctrl+C`.
 
@@ -91,7 +91,7 @@ Make sure Docker Desktop is running, then execute:
 docker compose up --build -d
 ```
 
-Open http://127.0.0.1:8000/ and check the container health:
+After the container starts, open the [Docker web UI](http://127.0.0.1:8000/) and check the container health:
 
 ```bash
 docker compose ps
@@ -106,20 +106,20 @@ docker compose down
 
 ## 7. Deploy to Kubernetes
 
-The Kubernetes deployment expects an image available at:
+The CI workflow publishes the image using this repository-based name:
 
 ```text
-ghcr.io/user/bengaluru-rental-agent:latest
+ghcr.io/shekh1995/bengaluru-rental-agent-app-test/bengaluru-rental-agent:latest
 ```
 
-Before deploying, replace that placeholder in `k8s/deployment.yaml` with the image you built and pushed.
+Update the `image` value in [`k8s/deployment.yaml`](k8s/deployment.yaml) to the published image before deploying. The GitHub Container Registry package must be public, or your cluster must have an image pull secret.
 
-Apply the manifests:
+Apply the manifests from the repository root:
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+kubectl apply -f ./k8s/deployment.yaml
+kubectl apply -f ./k8s/service.yaml
+kubectl apply -f ./k8s/ingress.yaml
 ```
 
 Check the rollout and service:
@@ -133,17 +133,13 @@ The deployment exposes port `8000` inside the container. The Kubernetes service 
 
 ## API examples
 
-List properties:
+List properties after starting the application:
 
-```text
-GET /api/properties
-```
+[GET /api/properties](http://127.0.0.1:8000/api/properties)
 
 Filter by BHK and maximum rent:
 
-```text
-GET /api/properties?bhk=2&max_rent=35000
-```
+[Filter properties by BHK and rent](http://127.0.0.1:8000/api/properties?bhk=2&max_rent=35000)
 
 Calculate move-in costs:
 
@@ -155,18 +151,15 @@ curl -X POST http://127.0.0.1:8000/api/calculate \
 
 ## Project structure
 
-```text
-app/
-	main.py                         FastAPI application and routes
-	models.py                       Pydantic request and response models
-	services/property_service.py    Listing data and filtering
-	services/calculator_service.py  Move-in cost calculations
-	static/                         HTML, CSS, and browser JavaScript
-tests/                            API and business-logic tests
-k8s/                              Kubernetes manifests
-Dockerfile                        Multi-stage production image
-docker-compose.yml                Local container orchestration
-```
+- [`app/main.py`](app/main.py): FastAPI application and routes
+- [`app/models.py`](app/models.py): Pydantic request and response models
+- [`app/services/property_service.py`](app/services/property_service.py): Listing data and filtering
+- [`app/services/calculator_service.py`](app/services/calculator_service.py): Move-in cost calculations
+- [`app/static/`](app/static/): HTML, CSS, and browser JavaScript
+- [`tests/`](tests/): API and business-logic tests
+- [`k8s/`](k8s/): Kubernetes manifests
+- [`Dockerfile`](Dockerfile): Multi-stage production image
+- [`docker-compose.yml`](docker-compose.yml): Local container orchestration
 
 ## Continuous integration
 
