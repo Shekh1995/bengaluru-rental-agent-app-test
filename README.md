@@ -1,219 +1,353 @@
-﻿# Bengaluru Rental Property AI Agent
+# Casa Bengaluru Rental Agent
 
-A FastAPI web application for searching Bengaluru rental listings, comparing commute estimates, and calculating move-in costs.
+A FastAPI application for comparing Bengaluru rental homes by monthly cost, commute, locality, and move-in expense. The application supports a PostgreSQL-backed live listing catalog and an explicit sample-data fallback for local development.
 
-## Features
+## What it does
 
-- Import permitted live listings into PostgreSQL every 15 minutes.
-- Filter live listings by BHK, rent, locality, furnishing, and work location.
-- View commute, metro, parking, water reliability, and verification details.
-- Calculate monthly costs, initial move-in cost, deposit ratio, annual projection, and estimated savings.
-- Serve the web UI and API from one FastAPI service.
-- Run locally with Python, Docker Compose, or Kubernetes manifests.
+- Imports permitted rental listings from a source API.
+- Stores active listings in PostgreSQL.
+- Synchronizes listings on startup and every 15 minutes by default.
+- Supports manual synchronization through `POST /api/sync`.
+- Marks listings missing from the latest source response inactive instead of deleting their history.
+- Orders live results by monthly rent so lower-priced homes appear first.
+- Filters by BHK, rent, locality, furnishing, work location, and commute time.
+- Calculates monthly burn, initial move-in cost, deposit ratio, annual projection, and estimated savings.
+- Serves the responsive web interface and API from one FastAPI service.
+
+## Important data requirement
+
+The importer must use an API or website source that you are allowed to access. Do not scrape a third-party website if its terms prohibit automated access. The application does not guess or scrape arbitrary websites.
+
+The configured source must return either a JSON array:
+
+```json
+[
+  {
+    "id": "listing-001",
+    "title": "Green Haven Builder Floor",
+    "area": "Banashankari 3rd Stage",
+    "bhk": 2,
+    "property_type": "Builder Floor",
+    "rent_monthly": 24500,
+    "deposit": 120000,
+    "maintenance": 1500,
+    "furnishing": "Semi-Furnished",
+    "built_up_sqft": 1050,
+    "floor": "2nd Floor",
+    "parking": "1 Covered Car",
+    "availability": "Immediate",
+    "nearest_metro": "Banashankari Metro",
+    "metro_distance_km": 2.2,
+    "work_commutes": [
+      {
+        "destination": "CBD / MG Road",
+        "travel_time_mins": 28,
+        "mode": "Metro + Auto"
+      }
+    ],
+    "area_character": "Quiet residential streets with good access to transit.",
+    "nearby_essentials": ["Supermarket", "Hospital"],
+    "verification_flags": ["Owner verified"],
+    "google_maps_url": "https://maps.google.com/?q=Banashankari+Bengaluru",
+    "listing_source": "Permitted source API",
+    "locality_metrics": {
+      "water_score": 4.5,
+      "noise_level": "Low",
+      "green_cover": "High",
+      "metro_proximity_km": 2.2
+    }
+  }
+]
+```
+
+or an object containing the same array:
+
+```json
+{ "listings": [ ... ] }
+```
+
+Every listing needs a stable unique `id`. Existing listings with the same ID are updated during sync.
 
 ## Requirements
 
 - Python 3.11 or newer
 - Git
-- Docker Desktop, only if using Docker
-- A Kubernetes cluster and `kubectl`, only if deploying to Kubernetes
+- PostgreSQL 14 or newer for live data
+- Docker Desktop, optional but recommended
+- A permitted listing API and API token, if the source requires authentication
 
-## 1. Get the code
+## Project structure
+
+```text
+app/
+  main.py                         FastAPI app, routes, startup sync loop
+  models.py                       Pydantic API and listing models
+  database.py                     PostgreSQL repository
+  services/
+    property_service.py           Filtering and sample fallback data
+    listing_sync.py                Source API importer and validation
+    calculator_service.py         Move-in cost calculations
+  static/
+    index.html                     Web application markup
+    styles.css                     Responsive visual design
+    app.js                         Browser API calls and rendering
+tests/
+  test_api.py                     HTTP endpoint tests
+  test_calculator.py               Calculator business-rule tests
+docker-compose.yml                 App plus PostgreSQL services
+Dockerfile                         Production application image
+.env.example                       Environment variable template
+```
+
+## Option 1: Run with Docker Compose
+
+Clone the repository and enter its root directory:
 
 ```bash
 git clone https://github.com/Shekh1995/bengaluru-rental-agent-app-test.git
 cd bengaluru-rental-agent-app-test
 ```
 
-On Windows PowerShell, use the same commands from the directory where you want to store the project.
-
-## 2. Create a virtual environment
-
-Windows PowerShell:
-
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-macOS/Linux:
+Create the environment file:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+cp .env.example .env
 ```
 
-If PowerShell blocks activation, run this once in the current PowerShell session:
+On Windows PowerShell, use:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+Copy-Item .env.example .env
 ```
 
-## 3. Install dependencies
+Edit `.env` and set the permitted source API:
 
-Install runtime and development dependencies:
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -r requirements-dev.txt
+```env
+LISTINGS_API_URL=https://your-domain.example/api/listings
+LISTINGS_API_TOKEN=your-source-token
+LISTINGS_SYNC_INTERVAL_SECONDS=900
 ```
 
-## 4. Run the tests
-
-Run all tests from the repository root:
-
-```bash
-python -m pytest -q
-```
-
-The test suite covers health/readiness endpoints, the web UI, property filtering, the calculation API, and calculator business rules.
-
-## 5. Start the application locally
-
-Run this from the cloned repository root, the folder containing `app`, `requirements.txt`, and `README.md`.
-
-Windows PowerShell:
-
-```powershell
-cd path\to\bengaluru-rental-agent-app-test
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-macOS/Linux:
-
-```bash
-cd path/to/bengaluru-rental-agent-app-test
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Keep this terminal open while using the application. After the server starts, open these links on the same computer:
-
-- [Web UI](http://127.0.0.1:8000/)
-- [Interactive API documentation](http://127.0.0.1:8000/docs)
-- [Health check](http://127.0.0.1:8000/health)
-- [Readiness check](http://127.0.0.1:8000/ready)
-
-Stop the development server with `Ctrl+C`.
-
-If port `8000` is already in use, start the server on another port, for example:
-
-```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8002
-```
-
-When using another port, replace `8000` with `8002` in each browser link above.
-
-If you see `Could not import module "app.main"`, change directory to the repository root before running the command. If you see `No module named uvicorn`, activate the virtual environment and install the dependencies from steps 2 and 3.
-
-## 6. Run with Docker Compose
-
-Make sure Docker Desktop is running, then execute:
+Start PostgreSQL and the web application:
 
 ```bash
 docker compose up --build -d
 ```
 
-After the container starts, open the [Docker web UI](http://127.0.0.1:8000/) and check the container health:
+Check the services:
 
 ```bash
 docker compose ps
 docker compose logs -f rental-agent
 ```
 
-Stop and remove the container:
+Open the application:
+
+- Local web app: `http://127.0.0.1:8000/`
+- API documentation: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/health`
+- Readiness: `http://127.0.0.1:8000/ready`
+
+Stop the services without deleting the database volume:
 
 ```bash
 docker compose down
 ```
 
-## Live listing data
-
-The application uses PostgreSQL when `DATABASE_URL` is configured. Set the source API in `.env` (copy `.env.example` first):
+To remove the PostgreSQL data volume as well, use this only when you intentionally want a fresh database:
 
 ```bash
-LISTINGS_API_URL=https://your-permitted-source.example/api/listings
-LISTINGS_API_TOKEN=your-token
-LISTINGS_SYNC_INTERVAL_SECONDS=900
+docker compose down -v
 ```
 
-The source must return either a JSON array or an object with a `listings` array. Each listing must match the `PropertyListing` shape returned by `GET /api/properties`. This keeps the importer explicit and avoids scraping sites without permission.
+## Option 2: Run directly on a Linux VM
 
-Run a sync manually after starting the service:
+Pull the latest code:
+
+```bash
+cd ~/bengaluru-rental-agent-app-test
+git pull origin main
+```
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Set the live-data variables. Replace the values with your actual permitted source and PostgreSQL connection:
+
+```bash
+export DATABASE_URL='postgresql+psycopg://user:password@127.0.0.1:5432/rental_agent'
+export LISTINGS_API_URL='https://your-domain.example/api/listings'
+export LISTINGS_API_TOKEN='your-source-token'
+export LISTINGS_SYNC_INTERVAL_SECONDS='900'
+```
+
+Start the service on all interfaces so it can be reached through the VM public IP:
+
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The terminal must remain open while running this way. For a long-running VM deployment, use Docker Compose or a process manager such as systemd.
+
+Open:
+
+```text
+http://YOUR_VM_EXTERNAL_IP:8000/
+```
+
+The cloud firewall must allow inbound TCP traffic on port `8000`. Restrict the source IP range in production instead of allowing the whole internet.
+
+## Environment variables
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | For live data | Empty | PostgreSQL SQLAlchemy URL. Without it, sample data is used. |
+| `LISTINGS_API_URL` | For live sync | Empty | Permitted source endpoint returning listing JSON. |
+| `LISTINGS_API_TOKEN` | Source-dependent | Empty | Sent as a Bearer token when set. |
+| `LISTINGS_SYNC_INTERVAL_SECONDS` | No | `900` | Background sync interval. `900` equals 15 minutes. |
+| `SYNC_TOKEN` | No | Empty | Protects manual sync when set. |
+| `APP_ENV` | No | Empty | Deployment environment label. |
+
+Never commit `.env`, database passwords, or API tokens. `.env.example` contains placeholders only.
+
+## Synchronization behavior
+
+When both `DATABASE_URL` and `LISTINGS_API_URL` are configured:
+
+1. The application creates the `rental_listings` table if it does not exist.
+2. It attempts an import during startup.
+3. It repeats the import every 15 minutes.
+4. It validates each record against the `PropertyListing` model.
+5. It upserts records by stable listing ID.
+6. It marks records absent from the newest successful response inactive.
+7. It refuses to replace active data when the source returns an empty response or an invalid response.
+
+Run a manual import:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/sync
 ```
 
-If `SYNC_TOKEN` is configured, send it as `-H "X-Sync-Token: your-token"`. Listings are upserted by `id`, stale records are marked inactive, and active results are ordered by monthly rent.
-
-## 7. Deploy to Kubernetes
-
-The CI workflow publishes the image using this repository-based name:
-
-```text
-ghcr.io/shekh1995/bengaluru-rental-agent-app-test/bengaluru-rental-agent:latest
-```
-
-Update the `image` value in [`k8s/deployment.yaml`](k8s/deployment.yaml) to the published image before deploying. The GitHub Container Registry package must be public, or your cluster must have an image pull secret.
-
-Apply the manifests from the repository root:
+When `SYNC_TOKEN` is configured:
 
 ```bash
-kubectl apply -f ./k8s/deployment.yaml
-kubectl apply -f ./k8s/service.yaml
-kubectl apply -f ./k8s/ingress.yaml
+curl -X POST http://127.0.0.1:8000/api/sync \
+  -H 'X-Sync-Token: your-sync-token'
 ```
 
-Check the rollout and service:
+Expected response:
+
+```json
+{ "status": "synced", "count": 42 }
+```
+
+## API reference
+
+### List properties
 
 ```bash
-kubectl rollout status deployment/bengaluru-rental-agent
-kubectl get pods,service,ingress
+curl 'http://127.0.0.1:8000/api/properties?bhk=2&max_rent=35000'
 ```
 
-The deployment exposes port `8000` inside the container. The Kubernetes service exposes it on port `80`.
+Supported query parameters:
 
-## API examples
+- `min_rent`: minimum monthly rent
+- `max_rent`: maximum monthly rent
+- `bhk`: number of bedrooms
+- `area`: partial locality match
+- `furnishing`: partial furnishing match
+- `work_location`: commute destination match
+- `max_commute_mins`: maximum commute duration
 
-List properties after starting the application:
+### Get one property
 
-[GET /api/properties](http://127.0.0.1:8000/api/properties)
+```bash
+curl http://127.0.0.1:8000/api/properties/listing-001
+```
 
-Filter by BHK and maximum rent:
-
-[Filter properties by BHK and rent](http://127.0.0.1:8000/api/properties?bhk=2&max_rent=35000)
-
-Calculate move-in costs:
+### Calculate move-in cost
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/calculate \
-	-H "Content-Type: application/json" \
-	-d '{"rent_monthly":28000,"deposit":120000,"maintenance":2000}'
+  -H 'Content-Type: application/json' \
+  -d '{"rent_monthly":28000,"deposit":120000,"maintenance":2000,"brokerage":0,"agreement_charges":1500}'
 ```
 
-## Project structure
+### Health and readiness
 
-- [`app/main.py`](app/main.py): FastAPI application and routes
-- [`app/models.py`](app/models.py): Pydantic request and response models
-- [`app/services/property_service.py`](app/services/property_service.py): Listing filtering and fallback data
-- [`app/database.py`](app/database.py): PostgreSQL listing repository
-- [`app/services/listing_sync.py`](app/services/listing_sync.py): Live source importer
-- [`app/services/calculator_service.py`](app/services/calculator_service.py): Move-in cost calculations
-- [`app/static/`](app/static/): HTML, CSS, and browser JavaScript
-- [`tests/`](tests/): API and business-logic tests
-- [`k8s/`](k8s/): Kubernetes manifests
-- [`Dockerfile`](Dockerfile): Multi-stage production image
-- [`docker-compose.yml`](docker-compose.yml): Local container orchestration
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/ready
+```
 
-## Continuous integration
+Readiness reports `database: configured` when PostgreSQL is enabled and `database: sample-data-fallback` otherwise.
 
-The workflow in `.github/workflows/ci-cd.yml` runs on pushes and pull requests targeting `main` or `master`. It:
+## Local development and tests
 
-1. Installs Python dependencies.
-2. Runs Flake8 checks and the Pytest suite with coverage.
-3. Builds and, for non-pull-request pushes, publishes a Docker image to GitHub Container Registry.
-4. Runs a Trivy filesystem security scan.
-5. Counts and validates the Kubernetes manifest files for the staging verification job.
+Create a virtual environment and install dependencies:
 
-The workflow does not configure cluster credentials or perform a live Kubernetes rollout. Kubernetes deployment remains a separate step using the manifests above.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
+
+Run the complete test suite:
+
+```bash
+python -m pytest -q
+```
+
+Run Python syntax compilation:
+
+```bash
+python -m compileall -q app
+```
+
+The default tests run without PostgreSQL and use the sample fallback. Add an integration test database before testing production migrations or real source imports.
+
+## Troubleshooting
+
+### `ERR_CONNECTION_REFUSED`
+
+Start Uvicorn with `--host 0.0.0.0`, not `--host 127.0.0.1`, when accessing the VM public IP. Also confirm the cloud firewall allows TCP port `8000`.
+
+### `Could not import module "app.main"`
+
+Run Uvicorn from the repository root, the directory containing `app`, `requirements.txt`, and `README.md`.
+
+### The app shows sample listings
+
+This means `DATABASE_URL` is missing, or the live source variables are not configured. Set both `DATABASE_URL` and `LISTINGS_API_URL`, restart the service, then call `POST /api/sync`.
+
+### Manual sync returns `502`
+
+Check the application logs. Common causes are an incorrect source URL, expired token, invalid JSON, a response without `listings`, or records that do not match the required model.
+
+### PostgreSQL connection errors
+
+Confirm that PostgreSQL is running, the database exists, the credentials are correct, and the URL uses the installed `psycopg` driver format:
+
+```text
+postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
+```
+
+## Security notes
+
+- Use only listing sources you are authorized to access.
+- Keep API tokens and database credentials in environment variables or a secret manager.
+- Set `SYNC_TOKEN` before exposing the manual sync endpoint publicly.
+- Restrict cloud firewall source ranges where possible.
+- Put the application behind HTTPS and a reverse proxy for production.
+- Replace the default Docker PostgreSQL password before deployment.
+
+## License and data
+
+The repository contains sample listing data for demonstration. Live listing accuracy, availability, pricing, and source permissions remain the responsibility of the configured data provider.
