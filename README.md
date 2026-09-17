@@ -85,8 +85,8 @@ Configure it in `.env`:
 ```env
 LISTINGS_PROVIDER=square_yards
 SQUARE_YARDS_LOCATION=Bengaluru
-SQUARE_YARDS_BEDROOMS=2 BHK
-SQUARE_YARDS_MAX_PRICE=35000
+SQUARE_YARDS_BEDROOMS=1 BHK
+SQUARE_YARDS_MAX_PRICE=22000
 SQUARE_YARDS_SIZE=50
 SQUARE_YARDS_PAGE=1
 SQUARE_YARDS_MAX_PAGES=100
@@ -280,7 +280,7 @@ Expected response:
 ### List properties
 
 ```bash
-curl 'http://127.0.0.1:8000/api/properties?bhk=2&max_rent=35000'
+curl 'http://127.0.0.1:8000/api/properties?bhk=1&max_rent=22000'
 ```
 
 Supported query parameters:
