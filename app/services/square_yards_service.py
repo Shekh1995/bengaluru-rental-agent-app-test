@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -57,6 +58,7 @@ def _map_listing(item: Dict[str, Any]) -> Optional[PropertyListing]:
     if not item.get("id") or not item.get("bhk") or not rent:
         return None
     area = item.get("locality") or item.get("city") or "Bengaluru"
+    city = item.get("city") or "Bengaluru"
     furnishing = (item.get("furnishing") or "Not specified").replace("-", " ").title()
     return PropertyListing(
         id=f"square-yards-{item['id']}",
@@ -78,7 +80,7 @@ def _map_listing(item: Dict[str, Any]) -> Optional[PropertyListing]:
         area_character=item.get("summary") or "See the Square Yards listing for more details.",
         nearby_essentials=[],
         verification_flags=["Square Yards verified"] if item.get("isVerified") else [],
-        google_maps_url=item.get("url") or item.get("sourceUrl") or "https://www.squareyards.com",
+        google_maps_url=f"https://www.google.com/maps/search/?api=1&query={quote(f'{area}, {city}, India')}",
         listing_source="Square Yards",
         locality_metrics={"water_score": 3.0, "noise_level": "Unknown", "green_cover": "Unknown", "metro_proximity_km": 0},
     )
