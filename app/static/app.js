@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const values = { bhk: document.getElementById('bhkFilter').value, max_rent: maxRent.value, area: document.getElementById('areaFilter').value, work_location: document.getElementById('workLocation').value };
     Object.entries(values).forEach(([key, value]) => { if (value) params.set(key, value); });
     propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', 'Finding the right fit...', 'empty-state');
-    try { const response = await fetch(`/api/properties?${params}`); if (!response.ok) throw new Error('Could not load listings'); renderProperties(await response.json()); } catch (error) { propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', error.message, 'empty-state'); propertiesCount.textContent = 'Search unavailable'; }
+    try { const response = await fetch(`/api/properties?${params}`); if (!response.ok) throw new Error('Could not load listings'); renderProperties(await response.json()); } catch (error) { propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', error.message, 'empty-state'); propertiesCount.textContent = 'Live catalog unavailable'; }
   }
 
   async function syncAndFetch() {
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       await fetchProperties();
     } catch (error) {
-      propertiesCount.textContent = error.message;
+      propertiesCount.textContent = `Live sync unavailable: ${error.message}`;
     } finally {
       refreshListings.disabled = false;
       refreshListings.textContent = 'Refresh ↻';
@@ -89,11 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'AI assistant is unavailable');
       aiAnswer.textContent = data.answer;
-    } catch (error) { aiAnswer.textContent = error.message; }
+    } catch (error) { aiAnswer.textContent = error.message.includes('GEMINI_API_KEY') ? 'Add GEMINI_API_KEY on the server to activate live rental guidance.' : error.message; }
   }
 
   function closeModal() { calcModal.hidden = true; }
   maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); aiForm.addEventListener('submit', askAI); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
   refreshListings.addEventListener('click', syncAndFetch); setInterval(syncAndFetch, 5 * 60 * 1000);
-  rentValue.textContent = money(Number(maxRent.value)); fetchProperties();
+  rentValue.textContent = money(Number(maxRent.value)); syncAndFetch();
 });
