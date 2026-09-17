@@ -81,7 +81,8 @@ class ListingRepository:
         from sqlalchemy import text
         with self._connect() as connection:
             rows = connection.execute(text("SELECT listing FROM rental_listings WHERE is_active = TRUE ORDER BY rent_monthly ASC"))
-            return [PropertyListing.model_validate(row[0]) for row in rows]
+            listings = [PropertyListing.model_validate(row[0]) for row in rows]
+            return listings or None
 
 
 repository = ListingRepository()

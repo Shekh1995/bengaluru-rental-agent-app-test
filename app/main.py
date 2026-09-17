@@ -1,5 +1,6 @@
 ﻿import os
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from typing import List, Optional
 from fastapi import FastAPI, Query, HTTPException, Header
@@ -22,6 +23,9 @@ from app.services.listing_sync import ListingSyncError, sync_live_listings
 from app.services.gemini_service import GeminiService, GeminiServiceError
 
 
+logger = logging.getLogger(__name__)
+
+
 async def _listing_sync_loop():
     interval = int(os.getenv("LISTINGS_SYNC_INTERVAL_SECONDS", "900"))
     provider = os.getenv("LISTINGS_PROVIDER", "generic").lower()
@@ -30,8 +34,8 @@ async def _listing_sync_loop():
         if repository.enabled and (os.getenv("LISTINGS_API_URL") or provider == "square_yards"):
             try:
                 await asyncio.to_thread(sync_live_listings)
-            except ListingSyncError:
-                pass
+            except ListingSyncError as error:
+                logger.warning("Scheduled listing sync failed: %s", error)
 
 
 @asynccontextmanager
@@ -41,8 +45,8 @@ async def lifespan(_app: FastAPI):
     if repository.enabled and (os.getenv("LISTINGS_API_URL") or provider == "square_yards"):
         try:
             await asyncio.to_thread(sync_live_listings)
-        except ListingSyncError:
-            pass
+        except ListingSyncError as error:
+            logger.warning("Startup listing sync failed: %s", error)
     sync_task = asyncio.create_task(_listing_sync_loop())
     try:
         yield
