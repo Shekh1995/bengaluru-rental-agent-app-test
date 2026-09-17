@@ -67,3 +67,12 @@ class SearchFilter(BaseModel):
     furnishing: Optional[str] = None
     work_location: Optional[str] = None
     max_commute_mins: Optional[int] = Field(None, ge=0)
+
+
+class AIInsightRequest(BaseModel):
+    question: str = Field(..., min_length=3, max_length=500)
+    listing_ids: List[str] = Field(default_factory=list, max_length=10)
+
+
+class AIInsightResponse(BaseModel):
+    answer: str

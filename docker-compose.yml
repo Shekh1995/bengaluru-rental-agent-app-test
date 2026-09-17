@@ -27,6 +27,8 @@ services:
       - LISTINGS_API_URL=${LISTINGS_API_URL:-}
       - LISTINGS_API_TOKEN=${LISTINGS_API_TOKEN:-}
       - LISTINGS_SYNC_INTERVAL_SECONDS=${LISTINGS_SYNC_INTERVAL_SECONDS:-900}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-latest}
     depends_on:
       - postgres
     healthcheck:

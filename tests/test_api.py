@@ -83,3 +83,9 @@ def test_get_areas():
     assert response.status_code == 200
     areas = response.json()
     assert len(areas) >= 4
+
+
+def test_ai_insight_requires_configuration(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    response = client.post("/api/ai/insight", json={"question": "Which home is the best value?"})
+    assert response.status_code == 503

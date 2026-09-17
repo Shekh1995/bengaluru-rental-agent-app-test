@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const calcModal = document.getElementById('calcModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const modalBody = document.getElementById('modalBody');
+  const aiForm = document.getElementById('aiForm');
+  const aiQuestion = document.getElementById('aiQuestion');
+  const aiAnswer = document.getElementById('aiAnswer');
+  let currentProperties = [];
   const currency = new Intl.NumberFormat('en-IN');
   const money = (value) => `₹${currency.format(value)}`;
 
@@ -19,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderProperties(properties) {
+    currentProperties = properties;
     propertiesCount.textContent = `${properties.length} ${properties.length === 1 ? 'home' : 'homes'} match your brief`;
     propertiesGrid.replaceChildren();
     if (properties.length === 0) {
@@ -57,7 +62,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) { propertiesCount.textContent = error.message; }
   }
 
+  async function askAI(event) {
+    event.preventDefault();
+    aiAnswer.textContent = 'Thinking through the shortlist...';
+    try {
+      const response = await fetch('/api/ai/insight', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: aiQuestion.value, listing_ids: currentProperties.map((property) => property.id) }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'AI assistant is unavailable');
+      aiAnswer.textContent = data.answer;
+    } catch (error) { aiAnswer.textContent = error.message; }
+  }
+
   function closeModal() { calcModal.hidden = true; }
-  maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
+  maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); aiForm.addEventListener('submit', askAI); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
   rentValue.textContent = money(Number(maxRent.value)); fetchProperties();
 });

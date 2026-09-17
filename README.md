@@ -12,6 +12,7 @@ A FastAPI application for comparing Bengaluru rental homes by monthly cost, comm
 - Orders live results by monthly rent so lower-priced homes appear first.
 - Filters by BHK, rent, locality, furnishing, work location, and commute time.
 - Calculates monthly burn, initial move-in cost, deposit ratio, annual projection, and estimated savings.
+- Provides optional Gemini-powered answers about the current shortlist.
 - Serves the responsive web interface and API from one FastAPI service.
 
 ## Important data requirement
@@ -213,6 +214,8 @@ The cloud firewall must allow inbound TCP traffic on port `8000`. Restrict the s
 | `LISTINGS_SYNC_INTERVAL_SECONDS` | No | `900` | Background sync interval. `900` equals 15 minutes. |
 | `SYNC_TOKEN` | No | Empty | Protects manual sync when set. |
 | `APP_ENV` | No | Empty | Deployment environment label. |
+| `GEMINI_API_KEY` | For AI guidance | Empty | Gemini API key, read only by the backend. |
+| `GEMINI_MODEL` | No | `gemini-flash-latest` | Gemini model used for shortlist questions. |
 
 Never commit `.env`, database passwords, or API tokens. `.env.example` contains placeholders only.
 
@@ -287,6 +290,33 @@ curl http://127.0.0.1:8000/ready
 ```
 
 Readiness reports `database: configured` when PostgreSQL is enabled and `database: sample-data-fallback` otherwise.
+
+## Gemini rental assistant
+
+The optional AI assistant uses the configured listings as context and answers questions such as:
+
+```text
+Which home is the best value for a 2 BHK renter?
+Which listing has the lowest upfront cost?
+Which home looks best for a CBD commute?
+```
+
+Configure Gemini on the server, never in browser JavaScript:
+
+```bash
+export GEMINI_API_KEY='your-new-key'
+export GEMINI_MODEL='gemini-flash-latest'
+```
+
+The UI calls:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ai/insight \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"Which home is the best value?","listing_ids":[]}'
+```
+
+The API sends only the selected listing summary and the user's question to Gemini. It does not send the API key to the browser. If `GEMINI_API_KEY` is not configured, the rest of the rental application continues to work and the AI route returns `503`.
 
 ## Local development and tests
 

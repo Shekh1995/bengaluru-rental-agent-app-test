@@ -12,11 +12,14 @@ from app.models import (
     CostBreakdownRequest,
     CostBreakdownResponse,
     SearchFilter,
+    AIInsightRequest,
+    AIInsightResponse,
 )
 from app.services.property_service import PropertyService
 from app.services.calculator_service import RentalCalculatorService
 from app.database import repository
 from app.services.listing_sync import ListingSyncError, sync_live_listings
+from app.services.gemini_service import GeminiService, GeminiServiceError
 
 
 async def _listing_sync_loop():
@@ -122,6 +125,18 @@ def sync_properties(x_sync_token: Optional[str] = Header(None)):
 @app.post("/api/calculate", response_model=CostBreakdownResponse, tags=["Financial Calculator"])
 def calculate_costs(req: CostBreakdownRequest):
     return RentalCalculatorService.calculate_deal(req)
+
+
+@app.post("/api/ai/insight", response_model=AIInsightResponse, tags=["AI Assistant"])
+def get_ai_insight(req: AIInsightRequest):
+    listings = PropertyService.get_all_properties()
+    if req.listing_ids:
+        selected = set(req.listing_ids)
+        listings = [listing for listing in listings if listing.id in selected]
+    try:
+        return AIInsightResponse(answer=GeminiService.answer(req.question, listings))
+    except GeminiServiceError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/api/areas", tags=["Locality Insights"])
