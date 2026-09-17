@@ -4,7 +4,8 @@ A FastAPI web application for searching Bengaluru rental listings, comparing com
 
 ## Features
 
-- Filter sample listings by BHK, rent, locality, furnishing, and work location.
+- Import permitted live listings into PostgreSQL every 15 minutes.
+- Filter live listings by BHK, rent, locality, furnishing, and work location.
 - View commute, metro, parking, water reliability, and verification details.
 - Calculate monthly costs, initial move-in cost, deposit ratio, annual projection, and estimated savings.
 - Serve the web UI and API from one FastAPI service.
@@ -126,6 +127,26 @@ Stop and remove the container:
 docker compose down
 ```
 
+## Live listing data
+
+The application uses PostgreSQL when `DATABASE_URL` is configured. Set the source API in `.env` (copy `.env.example` first):
+
+```bash
+LISTINGS_API_URL=https://your-permitted-source.example/api/listings
+LISTINGS_API_TOKEN=your-token
+LISTINGS_SYNC_INTERVAL_SECONDS=900
+```
+
+The source must return either a JSON array or an object with a `listings` array. Each listing must match the `PropertyListing` shape returned by `GET /api/properties`. This keeps the importer explicit and avoids scraping sites without permission.
+
+Run a sync manually after starting the service:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/sync
+```
+
+If `SYNC_TOKEN` is configured, send it as `-H "X-Sync-Token: your-token"`. Listings are upserted by `id`, stale records are marked inactive, and active results are ordered by monthly rent.
+
 ## 7. Deploy to Kubernetes
 
 The CI workflow publishes the image using this repository-based name:
@@ -175,7 +196,9 @@ curl -X POST http://127.0.0.1:8000/api/calculate \
 
 - [`app/main.py`](app/main.py): FastAPI application and routes
 - [`app/models.py`](app/models.py): Pydantic request and response models
-- [`app/services/property_service.py`](app/services/property_service.py): Listing data and filtering
+- [`app/services/property_service.py`](app/services/property_service.py): Listing filtering and fallback data
+- [`app/database.py`](app/database.py): PostgreSQL listing repository
+- [`app/services/listing_sync.py`](app/services/listing_sync.py): Live source importer
 - [`app/services/calculator_service.py`](app/services/calculator_service.py): Move-in cost calculations
 - [`app/static/`](app/static/): HTML, CSS, and browser JavaScript
 - [`tests/`](tests/): API and business-logic tests

@@ -1,6 +1,17 @@
 ﻿version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: blr-rental-agent-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rental_agent
+      POSTGRES_USER: rental_agent
+      POSTGRES_PASSWORD: change-this-password
+    volumes:
+      - rental-agent-postgres:/var/lib/postgresql/data
+
   rental-agent:
     build:
       context: .
@@ -12,8 +23,17 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - APP_ENV=production
+      - DATABASE_URL=postgresql+psycopg://rental_agent:change-this-password@postgres:5432/rental_agent
+      - LISTINGS_API_URL=${LISTINGS_API_URL:-}
+      - LISTINGS_API_TOKEN=${LISTINGS_API_TOKEN:-}
+      - LISTINGS_SYNC_INTERVAL_SECONDS=${LISTINGS_SYNC_INTERVAL_SECONDS:-900}
+    depends_on:
+      - postgres
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 15s
       timeout: 5s
       retries: 3
+
+volumes:
+  rental-agent-postgres:

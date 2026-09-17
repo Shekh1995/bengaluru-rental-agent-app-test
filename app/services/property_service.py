@@ -1,5 +1,6 @@
 ﻿from typing import List, Optional
 from app.models import PropertyListing, CommuteInfo, LocalityMetrics, SearchFilter
+from app.database import repository
 
 
 SAMPLE_PROPERTIES: List[PropertyListing] = [
@@ -153,12 +154,13 @@ SAMPLE_PROPERTIES: List[PropertyListing] = [
 class PropertyService:
     @staticmethod
     def get_all_properties() -> List[PropertyListing]:
-        return SAMPLE_PROPERTIES
+        stored = repository.get_all()
+        return stored if stored is not None else SAMPLE_PROPERTIES
 
     @staticmethod
     def filter_properties(filters: SearchFilter) -> List[PropertyListing]:
         results = []
-        for prop in SAMPLE_PROPERTIES:
+        for prop in PropertyService.get_all_properties():
             if filters.min_rent is not None and prop.rent_monthly < filters.min_rent:
                 continue
             if filters.max_rent is not None and prop.rent_monthly > filters.max_rent:

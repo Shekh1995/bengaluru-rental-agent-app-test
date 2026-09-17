@@ -1,6 +1,8 @@
 ﻿import os
+import asyncio
+from contextlib import asynccontextmanager
 from typing import List, Optional
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,11 +15,40 @@ from app.models import (
 )
 from app.services.property_service import PropertyService
 from app.services.calculator_service import RentalCalculatorService
+from app.database import repository
+from app.services.listing_sync import ListingSyncError, sync_live_listings
+
+
+async def _listing_sync_loop():
+    interval = int(os.getenv("LISTINGS_SYNC_INTERVAL_SECONDS", "900"))
+    while True:
+        await asyncio.sleep(interval)
+        if os.getenv("LISTINGS_API_URL") and repository.enabled:
+            try:
+                await asyncio.to_thread(sync_live_listings)
+            except ListingSyncError:
+                pass
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    repository.ensure_schema()
+    if os.getenv("LISTINGS_API_URL") and repository.enabled:
+        try:
+            await asyncio.to_thread(sync_live_listings)
+        except ListingSyncError:
+            pass
+    sync_task = asyncio.create_task(_listing_sync_loop())
+    try:
+        yield
+    finally:
+        sync_task.cancel()
 
 app = FastAPI(
     title="Bengaluru Rental Property AI Agent API",
     description="Cloud-native, pipeline-deployable microservice for Bengaluru rental research and financial intelligence",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS configuration
@@ -37,7 +68,11 @@ def health_check():
 
 @app.get("/ready", tags=["System"])
 def readiness_check():
-    return {"status": "ready", "database": "connected", "dependencies": "ok"}
+    return {
+        "status": "ready",
+        "database": "configured" if repository.enabled else "sample-data-fallback",
+        "dependencies": "ok",
+    }
 
 
 # Property API Endpoints
@@ -70,6 +105,18 @@ def get_property(property_id: str):
     if not prop:
         raise HTTPException(status_code=404, detail="Property listing not found")
     return prop
+
+
+@app.post("/api/sync", tags=["Properties"])
+def sync_properties(x_sync_token: Optional[str] = Header(None)):
+    configured_token = os.getenv("SYNC_TOKEN")
+    if configured_token and x_sync_token != configured_token:
+        raise HTTPException(status_code=401, detail="Invalid sync token")
+    try:
+        count = sync_live_listings()
+    except ListingSyncError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    return {"status": "synced", "count": count}
 
 
 @app.post("/api/calculate", response_model=CostBreakdownResponse, tags=["Financial Calculator"])
