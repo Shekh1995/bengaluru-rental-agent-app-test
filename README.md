@@ -5,6 +5,7 @@ A FastAPI application for comparing Bengaluru rental homes by monthly cost, comm
 ## What it does
 
 - Imports permitted rental listings from a source API.
+- Supports the public Square Yards MCP rental-search provider.
 - Stores active listings in PostgreSQL.
 - Synchronizes listings on startup and every 15 minutes by default.
 - Supports manual synchronization through `POST /api/sync`.
@@ -68,6 +69,29 @@ or an object containing the same array:
 ```
 
 Every listing needs a stable unique `id`. Existing listings with the same ID are updated during sync.
+
+## Square Yards MCP provider
+
+Square Yards exposes a public, read-only MCP endpoint for Indian property searches. It requires no account, API key, or authentication:
+
+```text
+https://sy-mcp.squareyards.com/mcp/external
+```
+
+The application calls the documented `search_properties` tool with `listingType: "Rent"`, a location such as `Bengaluru`, optional BHK and price filters, and a page size up to 50. The adapter maps returned cards into the local `PropertyListing` model and stores them in PostgreSQL.
+
+Configure it in `.env`:
+
+```env
+LISTINGS_PROVIDER=square_yards
+SQUARE_YARDS_LOCATION=Bengaluru
+SQUARE_YARDS_BEDROOMS=2 BHK
+SQUARE_YARDS_MAX_PRICE=35000
+SQUARE_YARDS_SIZE=50
+SQUARE_YARDS_PAGE=1
+```
+
+Square Yards states that its data may not always reflect real-time availability or pricing. The UI should display the source handoff link and users should confirm current details before acting.
 
 ## Requirements
 

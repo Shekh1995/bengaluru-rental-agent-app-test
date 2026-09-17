@@ -20,6 +20,9 @@ def _source_records(payload: Any) -> List[Dict[str, Any]]:
 
 
 def sync_live_listings() -> int:
+    if os.getenv("LISTINGS_PROVIDER", "generic").lower() == "square_yards":
+        from app.services.square_yards_service import sync_square_yards_listings
+        return sync_square_yards_listings()
     source_url = os.getenv("LISTINGS_API_URL")
     if not source_url:
         raise ListingSyncError("LISTINGS_API_URL is not configured")

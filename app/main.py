@@ -24,9 +24,10 @@ from app.services.gemini_service import GeminiService, GeminiServiceError
 
 async def _listing_sync_loop():
     interval = int(os.getenv("LISTINGS_SYNC_INTERVAL_SECONDS", "900"))
+    provider = os.getenv("LISTINGS_PROVIDER", "generic").lower()
     while True:
         await asyncio.sleep(interval)
-        if os.getenv("LISTINGS_API_URL") and repository.enabled:
+        if repository.enabled and (os.getenv("LISTINGS_API_URL") or provider == "square_yards"):
             try:
                 await asyncio.to_thread(sync_live_listings)
             except ListingSyncError:
@@ -36,7 +37,8 @@ async def _listing_sync_loop():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     repository.ensure_schema()
-    if os.getenv("LISTINGS_API_URL") and repository.enabled:
+    provider = os.getenv("LISTINGS_PROVIDER", "generic").lower()
+    if repository.enabled and (os.getenv("LISTINGS_API_URL") or provider == "square_yards"):
         try:
             await asyncio.to_thread(sync_live_listings)
         except ListingSyncError:
