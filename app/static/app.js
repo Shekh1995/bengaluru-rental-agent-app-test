@@ -11,7 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiQuestion = document.getElementById('aiQuestion');
   const aiAnswer = document.getElementById('aiAnswer');
   const refreshListings = document.getElementById('refreshListings');
+  const sortListings = document.getElementById('sortListings');
+  const savedCount = document.getElementById('savedCount');
+  const showSaved = document.getElementById('showSaved');
   let currentProperties = [];
+  let allProperties = [];
+  let savedOnly = false;
+  const savedIds = new Set(JSON.parse(localStorage.getItem('casa-bengaluru-saved') || '[]'));
   const currency = new Intl.NumberFormat('en-IN');
   const money = (value) => `₹${currency.format(value)}`;
 
@@ -24,18 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderProperties(properties) {
-    currentProperties = properties;
-    propertiesCount.textContent = `${properties.length} live ${properties.length === 1 ? 'home' : 'homes'} · refreshed ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    allProperties = properties;
+    const sortMode = sortListings.value;
+    const visibleProperties = savedOnly ? properties.filter((property) => savedIds.has(property.id)) : properties;
+    currentProperties = [...visibleProperties].sort((first, second) => {
+      if (sortMode === 'area') return second.built_up_sqft - first.built_up_sqft;
+      if (sortMode === 'move-in') return (first.deposit + first.rent_monthly) - (second.deposit + second.rent_monthly);
+      return first.rent_monthly - second.rent_monthly;
+    });
+    updateSavedCount();
+    propertiesCount.textContent = `${currentProperties.length} live ${currentProperties.length === 1 ? 'home' : 'homes'} · refreshed ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     propertiesGrid.replaceChildren();
-    if (properties.length === 0) {
+    if (currentProperties.length === 0) {
       appendText(propertiesGrid, 'p', 'No homes match those filters. Try widening your budget or neighbourhood.', 'empty-state');
       return;
     }
-    properties.forEach((property) => {
+    currentProperties.forEach((property) => {
       const card = document.createElement('article'); card.className = 'property-card';
       const header = document.createElement('div'); header.className = 'card-header';
       const titleBlock = document.createElement('div'); appendText(titleBlock, 'h3', property.title, 'card-title'); appendText(titleBlock, 'p', `● ${property.area}`, 'card-area');
-      const badge = document.createElement('span'); badge.className = 'badge-tag'; badge.textContent = `${property.bhk} BHK`; header.append(titleBlock, badge); card.appendChild(header);
+      const cardTools = document.createElement('div'); cardTools.className = 'card-tools'; const badge = document.createElement('span'); badge.className = 'badge-tag'; badge.textContent = `${property.bhk} BHK`; const saveButton = document.createElement('button'); saveButton.className = `save-button${savedIds.has(property.id) ? ' saved' : ''}`; saveButton.type = 'button'; saveButton.setAttribute('aria-label', savedIds.has(property.id) ? 'Remove saved home' : 'Save home'); saveButton.textContent = savedIds.has(property.id) ? '♥' : '♡'; saveButton.addEventListener('click', () => toggleSaved(property.id)); cardTools.append(badge, saveButton); header.append(titleBlock, cardTools); card.appendChild(header);
       const costs = document.createElement('div'); costs.className = 'cost-row';
       [['Monthly rent', money(property.rent_monthly)], ['Deposit', money(property.deposit)], ['Maintenance', money(property.maintenance)]].forEach(([label, value]) => { const item = document.createElement('div'); item.className = 'cost-item'; appendText(item, 'span', label); appendText(item, 'strong', value); costs.appendChild(item); }); card.appendChild(costs);
       const meta = document.createElement('div'); meta.className = 'meta-info'; appendText(meta, 'p', `${property.furnishing} · ${property.built_up_sqft} sq ft`); appendText(meta, 'p', `Metro: ${property.nearest_metro} (${property.metro_distance_km} km)`); const water = document.createElement('p'); const waterLabel = document.createElement('strong'); waterLabel.textContent = 'Water reliability: '; water.append(waterLabel, `${property.locality_metrics.water_score}/5 · ${property.locality_metrics.green_cover} greenery`); meta.appendChild(water); card.appendChild(meta);
@@ -45,6 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const actions = document.createElement('div'); actions.className = 'actions-row'; const map = document.createElement('a'); map.className = 'btn-secondary'; map.href = property.google_maps_url; map.target = '_blank'; map.rel = 'noopener'; map.textContent = 'View map ↗'; const calculator = document.createElement('button'); calculator.className = 'btn-secondary btn-accent'; calculator.type = 'button'; calculator.textContent = 'Cost breakdown'; calculator.addEventListener('click', () => openCostCalculator(property)); actions.append(map, calculator); card.appendChild(actions); propertiesGrid.appendChild(card);
     });
   }
+
+  function updateSavedCount() { savedCount.textContent = `${savedIds.size} saved ${savedIds.size === 1 ? 'home' : 'homes'}`; }
+
+  function toggleSaved(propertyId) { if (savedIds.has(propertyId)) savedIds.delete(propertyId); else savedIds.add(propertyId); localStorage.setItem('casa-bengaluru-saved', JSON.stringify([...savedIds])); renderProperties(allProperties); }
 
   async function fetchProperties() {
     const params = new URLSearchParams();
@@ -94,6 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeModal() { calcModal.hidden = true; }
   maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); aiForm.addEventListener('submit', askAI); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
-  refreshListings.addEventListener('click', syncAndFetch); setInterval(syncAndFetch, 5 * 60 * 1000);
+  sortListings.addEventListener('change', () => renderProperties(allProperties)); showSaved.addEventListener('click', () => { savedOnly = !savedOnly; showSaved.classList.toggle('active', savedOnly); showSaved.textContent = savedOnly ? 'Show all homes' : 'Show saved only'; renderProperties(allProperties); }); refreshListings.addEventListener('click', syncAndFetch); setInterval(syncAndFetch, 5 * 60 * 1000);
   rentValue.textContent = money(Number(maxRent.value)); syncAndFetch();
 });
