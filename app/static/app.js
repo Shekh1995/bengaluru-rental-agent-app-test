@@ -1,141 +1,63 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const propertiesGrid = document.getElementById('propertiesGrid');
   const propertiesCount = document.getElementById('propertiesCount');
   const searchForm = document.getElementById('searchForm');
+  const maxRent = document.getElementById('maxRent');
+  const rentValue = document.getElementById('rentValue');
   const calcModal = document.getElementById('calcModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const modalBody = document.getElementById('modalBody');
+  const currency = new Intl.NumberFormat('en-IN');
+  const money = (value) => `₹${currency.format(value)}`;
 
-  async function fetchProperties() {
-    const bhk = document.getElementById('bhkFilter').value;
-    const maxRent = document.getElementById('maxRent').value;
-    const area = document.getElementById('areaFilter').value;
-    const workLocation = document.getElementById('workLocation').value;
-
-    const params = new URLSearchParams();
-    if (bhk) params.append('bhk', bhk);
-    if (maxRent) params.append('max_rent', maxRent);
-    if (area) params.append('area', area);
-    if (workLocation) params.append('work_location', workLocation);
-
-    try {
-      propertiesGrid.innerHTML = '<p style="color: #94a3b8;">Loading properties...</p>';
-      const res = await fetch(`/api/properties?${params.toString()}`);
-      const data = await res.json();
-      renderProperties(data);
-    } catch (err) {
-      propertiesGrid.innerHTML = `<p style="color: #ef4444;">Error loading properties: ${err.message}</p>`;
-    }
+  function appendText(parent, tag, text, className) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    if (className) element.className = className;
+    parent.appendChild(element);
+    return element;
   }
 
   function renderProperties(properties) {
-    propertiesCount.textContent = `Showing ${properties.length} verified value-optimized properties across Bengaluru`;
-
+    propertiesCount.textContent = `${properties.length} ${properties.length === 1 ? 'home' : 'homes'} match your brief`;
+    propertiesGrid.replaceChildren();
     if (properties.length === 0) {
-      propertiesGrid.innerHTML = '<p style="color: #94a3b8;">No properties matching your criteria. Try adjusting your rent or area filters.</p>';
+      appendText(propertiesGrid, 'p', 'No homes match those filters. Try widening your budget or neighbourhood.', 'empty-state');
       return;
     }
-
-    propertiesGrid.innerHTML = properties.map(p => `
-      <div class="property-card">
-        <div>
-          <div class="card-header">
-            <div>
-              <h4 class="card-title">${p.title}</h4>
-              <p style="font-size: 0.85rem; color: #38bdf8;">📍 ${p.area}</p>
-            </div>
-            <span class="badge-tag">${p.bhk} BHK</span>
-          </div>
-
-          <div class="cost-row">
-            <div class="cost-item">
-              <span>Monthly Rent</span>
-              <strong>₹${p.rent_monthly.toLocaleString()}</strong>
-            </div>
-            <div class="cost-item">
-              <span>Deposit</span>
-              <strong style="color: #94a3b8;">₹${p.deposit.toLocaleString()}</strong>
-            </div>
-            <div class="cost-item">
-              <span>Maintenance</span>
-              <strong style="color: #94a3b8;">₹${p.maintenance.toLocaleString()}</strong>
-            </div>
-          </div>
-
-          <div class="meta-info">
-            <p><strong>🛋️ Furnishing:</strong> ${p.furnishing} (${p.built_up_sqft} sqft)</p>
-            <p><strong>🚗 Parking:</strong> ${p.parking}</p>
-            <p><strong>🚇 Metro:</strong> ${p.nearest_metro} (${p.metro_distance_km} km)</p>
-            <p><strong>💧 Water Reliability:</strong> ${p.locality_metrics.water_score}/5</p>
-          </div>
-
-          <div class="commute-list">
-            <strong style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">COMMUTE ESTIMATES:</strong>
-            ${p.work_commutes.map(c => `
-              <div class="commute-item">
-                <span>${c.destination}</span>
-                <span style="color: #38bdf8; font-weight: 600;">~${c.travel_time_mins} mins (${c.mode})</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="actions-row">
-          <a href="${p.google_maps_url}" target="_blank" class="btn-secondary">🗺️ View Map</a>
-          <button class="btn-secondary btn-accent" onclick="openCostCalculator(${p.rent_monthly}, ${p.deposit}, ${p.maintenance}, '${p.title.replace(/'/g, "\\'")}')">💰 Move-in Calc</button>
-        </div>
-      </div>
-    `).join('');
+    properties.forEach((property) => {
+      const card = document.createElement('article'); card.className = 'property-card';
+      const header = document.createElement('div'); header.className = 'card-header';
+      const titleBlock = document.createElement('div'); appendText(titleBlock, 'h3', property.title, 'card-title'); appendText(titleBlock, 'p', `● ${property.area}`, 'card-area');
+      const badge = document.createElement('span'); badge.className = 'badge-tag'; badge.textContent = `${property.bhk} BHK`; header.append(titleBlock, badge); card.appendChild(header);
+      const costs = document.createElement('div'); costs.className = 'cost-row';
+      [['Monthly rent', money(property.rent_monthly)], ['Deposit', money(property.deposit)], ['Maintenance', money(property.maintenance)]].forEach(([label, value]) => { const item = document.createElement('div'); item.className = 'cost-item'; appendText(item, 'span', label); appendText(item, 'strong', value); costs.appendChild(item); }); card.appendChild(costs);
+      const meta = document.createElement('div'); meta.className = 'meta-info'; appendText(meta, 'p', `${property.furnishing} · ${property.built_up_sqft} sq ft`); appendText(meta, 'p', `Metro: ${property.nearest_metro} (${property.metro_distance_km} km)`); const water = document.createElement('p'); const waterLabel = document.createElement('strong'); waterLabel.textContent = 'Water reliability: '; water.append(waterLabel, `${property.locality_metrics.water_score}/5 · ${property.locality_metrics.green_cover} greenery`); meta.appendChild(water); card.appendChild(meta);
+      const commute = document.createElement('div'); commute.className = 'commute-list'; appendText(commute, 'div', 'COMMUTE ESTIMATES', 'commute-heading');
+      property.work_commutes.slice(0, 3).forEach((route) => { const row = document.createElement('div'); row.className = 'commute-item'; appendText(row, 'span', route.destination); appendText(row, 'span', `~${route.travel_time_mins} min · ${route.mode}`, 'commute-time'); commute.appendChild(row); }); card.appendChild(commute);
+      appendText(card, 'p', property.area_character, 'area-character');
+      const actions = document.createElement('div'); actions.className = 'actions-row'; const map = document.createElement('a'); map.className = 'btn-secondary'; map.href = property.google_maps_url; map.target = '_blank'; map.rel = 'noopener'; map.textContent = 'View map ↗'; const calculator = document.createElement('button'); calculator.className = 'btn-secondary btn-accent'; calculator.type = 'button'; calculator.textContent = 'Cost breakdown'; calculator.addEventListener('click', () => openCostCalculator(property)); actions.append(map, calculator); card.appendChild(actions); propertiesGrid.appendChild(card);
+    });
   }
 
-  window.openCostCalculator = async function(rent, deposit, maintenance, title) {
+  async function fetchProperties() {
+    const params = new URLSearchParams();
+    const values = { bhk: document.getElementById('bhkFilter').value, max_rent: maxRent.value, area: document.getElementById('areaFilter').value, work_location: document.getElementById('workLocation').value };
+    Object.entries(values).forEach(([key, value]) => { if (value) params.set(key, value); });
+    propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', 'Finding the right fit...', 'empty-state');
+    try { const response = await fetch(`/api/properties?${params}`); if (!response.ok) throw new Error('Could not load listings'); renderProperties(await response.json()); } catch (error) { propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', error.message, 'empty-state'); propertiesCount.textContent = 'Search unavailable'; }
+  }
+
+  async function openCostCalculator(property) {
     try {
-      const res = await fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rent_monthly: rent,
-          deposit: deposit,
-          maintenance: maintenance,
-          brokerage: 0,
-          agreement_charges: 1500
-        })
-      });
-      const data = await res.json();
+      const response = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rent_monthly: property.rent_monthly, deposit: property.deposit, maintenance: property.maintenance, brokerage: 0, agreement_charges: 1500 }) });
+      if (!response.ok) throw new Error('Could not calculate costs'); const data = await response.json(); document.getElementById('modalTitle').textContent = property.title; modalBody.replaceChildren();
+      const hero = document.createElement('div'); hero.className = 'modal-hero'; appendText(hero, 'p', 'Total initial move-in outlay'); appendText(hero, 'h3', money(data.total_initial_move_in_cost)); modalBody.appendChild(hero);
+      const list = document.createElement('div'); list.className = 'breakdown-list'; [['Monthly total burn', `${money(data.total_monthly_burn)} / month`], ['Deposit multiplier', `${data.deposit_to_rent_ratio}x ${data.is_deposit_high ? '(high)' : '(fair standard)'}`], ['Annual cost projection', money(data.annual_cost_projection)], ['Estimated annual savings', money(data.savings_vs_market_avg)]].forEach(([label, value]) => { const row = document.createElement('div'); row.className = 'breakdown-row'; appendText(row, 'span', label); appendText(row, 'strong', value); list.appendChild(row); }); modalBody.appendChild(list); calcModal.hidden = false; closeModalBtn.focus();
+    } catch (error) { propertiesCount.textContent = error.message; }
+  }
 
-      document.getElementById('modalTitle').textContent = `Move-in Breakdown: ${title}`;
-      modalBody.innerHTML = `
-        <div style="background: #0f172a; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-          <p style="color: #94a3b8; font-size: 0.85rem;">Total Initial Move-in Outlay</p>
-          <h2 style="color: #10b981; font-size: 2rem;">₹${data.total_initial_move_in_cost.toLocaleString()}</h2>
-          <p style="font-size: 0.8rem; color: #94a3b8;">(Includes Refundable Deposit + 1st Mo Rent + Maint + Agreement)</p>
-        </div>
-
-        <div style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.8;">
-          <p><strong>Monthly Total Burn:</strong> ₹${data.total_monthly_burn.toLocaleString()}/mo</p>
-          <p><strong>Security Deposit Multiplier:</strong> ${data.deposit_to_rent_ratio}x Months Rent ${data.is_deposit_high ? '<span style="color: #f59e0b;">(High)</span>' : '<span style="color: #10b981;">(Fair Standard)</span>'}</p>
-          <p><strong>Estimated Annual Savings vs. Tech Corridor Avg:</strong> <span style="color: #10b981; font-weight: 600;">₹${data.savings_vs_market_avg.toLocaleString()}/year</span></p>
-        </div>
-      `;
-      calcModal.style.display = 'flex';
-    } catch (err) {
-      alert('Error calculating breakdown: ' + err.message);
-    }
-  };
-
-  closeModalBtn.addEventListener('click', () => {
-    calcModal.style.display = 'none';
-  });
-
-  window.addEventListener('click', (e) => {
-    if (e.target === calcModal) calcModal.style.display = 'none';
-  });
-
-  searchForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    fetchProperties();
-  });
-
-  // Initial load
-  fetchProperties();
+  function closeModal() { calcModal.hidden = true; }
+  maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
+  rentValue.textContent = money(Number(maxRent.value)); fetchProperties();
 });
