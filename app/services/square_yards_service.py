@@ -96,9 +96,16 @@ def sync_square_yards_listings() -> int:
         if value:
             arguments[argument_name] = value if argument_name == "bedrooms" else int(value)
     try:
+        listings = []
+        max_pages = max(1, int(os.getenv("SQUARE_YARDS_MAX_PAGES", "100")))
         with httpx.Client(timeout=30.0) as client:
-            payload = _call_search_properties(client, arguments)
-        listings = [_map_listing(item) for item in payload.get("listings", [])]
+            for page in range(arguments["page"], arguments["page"] + max_pages):
+                arguments["page"] = page
+                payload = _call_search_properties(client, arguments)
+                listings.extend(_map_listing(item) for item in payload.get("listings", []))
+                total_pages = int(payload.get("totalPages") or page)
+                if page >= total_pages or not payload.get("listings"):
+                    break
     except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
         raise ListingSyncError(f"Could not import Square Yards listings: {error}") from error
     if not listings:

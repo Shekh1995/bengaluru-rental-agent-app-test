@@ -89,6 +89,7 @@ SQUARE_YARDS_BEDROOMS=2 BHK
 SQUARE_YARDS_MAX_PRICE=35000
 SQUARE_YARDS_SIZE=50
 SQUARE_YARDS_PAGE=1
+SQUARE_YARDS_MAX_PAGES=100
 ```
 
 Square Yards states that its data may not always reflect real-time availability or pricing. The UI should display the source handoff link and users should confirm current details before acting.
