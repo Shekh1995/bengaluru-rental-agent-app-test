@@ -53,7 +53,7 @@ def _call_search_properties(client: httpx.Client, arguments: Dict[str, Any]) -> 
     raise ListingSyncError("Square Yards MCP returned no structured search result")
 
 
-def _map_listing(item: Dict[str, Any]) -> Optional[PropertyListing]:
+def _map_listing(item: Dict[str, Any], priority_score: int = 0) -> Optional[PropertyListing]:
     rent = item.get("price")
     if not item.get("id") or not item.get("bhk") or not rent:
         return None
@@ -83,6 +83,12 @@ def _map_listing(item: Dict[str, Any]) -> Optional[PropertyListing]:
         google_maps_url=f"https://www.google.com/maps/search/?api=1&query={quote(f'{area}, {city}, India')}",
         listing_source="Square Yards",
         locality_metrics={"water_score": 3.0, "noise_level": "Unknown", "green_cover": "Unknown", "metro_proximity_km": 0},
+        priority_score=priority_score,
+        bathrooms=item.get("bathrooms"),
+        age_in_years=item.get("ageInYears"),
+        price_per_sqft=item.get("pricePerSqft"),
+        is_verified=bool(item.get("isVerified")),
+        is_featured=bool(item.get("isFeatured")),
     )
 
 
@@ -98,16 +104,27 @@ def sync_square_yards_listings() -> int:
         if value:
             arguments[argument_name] = value if argument_name == "bedrooms" else int(value)
     try:
-        listings = []
+        listings_by_id: Dict[str, PropertyListing] = {}
+        priority_areas = [area.strip() for area in os.getenv("SQUARE_YARDS_PRIORITY_AREAS", "Bellandur,Peenya").split(",") if area.strip()]
+        priority_pages = max(1, int(os.getenv("SQUARE_YARDS_PRIORITY_PAGES", "3")))
         max_pages = max(1, int(os.getenv("SQUARE_YARDS_MAX_PAGES", "100")))
         with httpx.Client(timeout=30.0) as client:
-            for page in range(arguments["page"], arguments["page"] + max_pages):
-                arguments["page"] = page
-                payload = _call_search_properties(client, arguments)
-                listings.extend(mapped for item in payload.get("listings", []) if (mapped := _map_listing(item)) is not None)
-                total_pages = int(payload.get("totalPages") or page)
-                if page >= total_pages or not payload.get("listings"):
-                    break
+            searches = [(f"{area}, Bengaluru", 100) for area in priority_areas]
+            searches.append((arguments["location"], 0))
+            for location, score in searches:
+                page_limit = priority_pages if score else max_pages
+                arguments["location"] = location
+                for page in range(1, page_limit + 1):
+                    arguments["page"] = page
+                    payload = _call_search_properties(client, arguments)
+                    for item in payload.get("listings", []):
+                        mapped = _map_listing(item, score)
+                        if mapped is not None and (mapped.id not in listings_by_id or mapped.priority_score > listings_by_id[mapped.id].priority_score):
+                            listings_by_id[mapped.id] = mapped
+                    total_pages = int(payload.get("totalPages") or page)
+                    if page >= total_pages or not payload.get("listings"):
+                        break
+        listings = list(listings_by_id.values())
     except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
         raise ListingSyncError(f"Could not import Square Yards listings: {error}") from error
     if not listings:

@@ -90,6 +90,8 @@ SQUARE_YARDS_MAX_PRICE=22000
 SQUARE_YARDS_SIZE=50
 SQUARE_YARDS_PAGE=1
 SQUARE_YARDS_MAX_PAGES=100
+SQUARE_YARDS_PRIORITY_AREAS=Bellandur,Peenya
+SQUARE_YARDS_PRIORITY_PAGES=3
 ```
 
 Square Yards states that its data may not always reflect real-time availability or pricing. The UI should display the source handoff link and users should confirm current details before acting.

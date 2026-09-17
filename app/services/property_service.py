@@ -184,4 +184,4 @@ class PropertyService:
                 ):
                     continue
             results.append(prop)
-        return results
+        return sorted(results, key=lambda prop: (-prop.priority_score, prop.rent_monthly))

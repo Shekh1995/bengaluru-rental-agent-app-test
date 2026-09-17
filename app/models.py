@@ -39,6 +39,12 @@ class PropertyListing(BaseModel):
     google_maps_url: str
     listing_source: str
     locality_metrics: LocalityMetrics
+    priority_score: int = Field(0, ge=0, le=100)
+    bathrooms: Optional[int] = Field(None, ge=0)
+    age_in_years: Optional[int] = Field(None, ge=0)
+    price_per_sqft: Optional[int] = Field(None, ge=0)
+    is_verified: bool = False
+    is_featured: bool = False
 
 
 class CostBreakdownRequest(BaseModel):
