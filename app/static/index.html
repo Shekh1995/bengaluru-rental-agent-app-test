@@ -21,8 +21,8 @@
       <section class="intro" aria-labelledby="page-title">
         <div class="eyebrow">A sharper way to rent in Bengaluru</div>
         <h1 id="page-title">Find a home that fits<br><em>your whole life.</em></h1>
-        <p class="intro-copy">Compare verified sample listings by cost, commute, and the small details that make a neighbourhood feel right.</p>
-        <div class="proof-row" aria-label="Service highlights"><span><strong>05</strong> curated listings</span><span><strong>06</strong> commute hubs</span><span><strong>01</strong> honest cost view</span></div>
+        <p class="intro-copy">Explore live Bengaluru rental inventory by budget, BHK, locality, and the daily commute that makes a home work.</p>
+        <div class="proof-row" aria-label="Live catalog details"><span><strong>LIVE</strong> Bengaluru inventory</span><span><strong>₹</strong> rent-first ranking</span><span><strong>5m</strong> refresh window</span></div>
       </section>
       <div class="workspace">
         <aside class="filter-panel" aria-labelledby="filter-title">
@@ -34,9 +34,9 @@
             <div class="form-group"><label for="workLocation">Daily destination</label><select id="workLocation"><option value="">No commute preference</option><option value="Bellandur">Bellandur / EcoSpace ORR</option><option value="Manyata">Manyata Tech Park</option><option value="CBD">CBD / MG Road</option><option value="ITPL">ITPL / Whitefield Corridor</option><option value="Electronic City">Electronic City</option></select></div>
             <button type="submit" class="btn-primary"><span>Show matching homes</span><span aria-hidden="true">↗</span></button>
           </form>
-          <p class="panel-note">Listings are sample data, designed to help you compare the trade-offs before you visit.</p>
+          <p class="panel-note">Live cards are sourced from Square Yards. Confirm availability and pricing on the original listing before visiting.</p>
         </aside>
-        <section class="results" aria-labelledby="results-title"><div class="results-header"><div><span class="section-kicker">The shortlist</span><h2 id="results-title">Homes worth a closer look</h2></div><p id="propertiesCount" class="results-count">Scanning listings...</p></div><div class="ai-panel"><div><span class="section-kicker">Gemini rental guide</span><p id="aiAnswer">Ask about the trade-offs in your shortlist.</p></div><form id="aiForm"><label class="sr-only" for="aiQuestion">Ask about these homes</label><input id="aiQuestion" maxlength="500" placeholder="Which home is best for my budget?" required><button class="btn-secondary btn-accent" type="submit">Ask AI ↗</button></form></div><div id="propertiesGrid" class="properties-grid" aria-live="polite"></div></section>
+        <section class="results" aria-labelledby="results-title"><div class="results-header"><div><span class="section-kicker">Bengaluru live catalog</span><h2 id="results-title">Homes worth a closer look</h2></div><div class="results-tools"><p id="propertiesCount" class="results-count">Scanning live inventory...</p><button id="refreshListings" class="refresh-button" type="button">Refresh ↻</button></div></div><div class="ai-panel"><div><span class="section-kicker">Gemini rental guide</span><p id="aiAnswer">Ask about the trade-offs in your live shortlist.</p></div><form id="aiForm"><label class="sr-only" for="aiQuestion">Ask about these homes</label><input id="aiQuestion" maxlength="500" placeholder="Which home is best for my budget?" required><button class="btn-secondary btn-accent" type="submit">Ask AI ↗</button></form></div><div id="propertiesGrid" class="properties-grid" aria-live="polite"></div></section>
       </div>
     </main>
     <div id="calcModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden><div class="modal-content"><div class="modal-header"><div><span class="section-kicker">The real number</span><h2 id="modalTitle">Move-in breakdown</h2></div><button id="closeModalBtn" class="close-button" type="button" aria-label="Close calculator">×</button></div><div id="modalBody"></div></div></div>

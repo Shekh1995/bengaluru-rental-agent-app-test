@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiForm = document.getElementById('aiForm');
   const aiQuestion = document.getElementById('aiQuestion');
   const aiAnswer = document.getElementById('aiAnswer');
+  const refreshListings = document.getElementById('refreshListings');
   let currentProperties = [];
   const currency = new Intl.NumberFormat('en-IN');
   const money = (value) => `₹${currency.format(value)}`;
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderProperties(properties) {
     currentProperties = properties;
-    propertiesCount.textContent = `${properties.length} ${properties.length === 1 ? 'home' : 'homes'} match your brief`;
+    propertiesCount.textContent = `${properties.length} live ${properties.length === 1 ? 'home' : 'homes'} · refreshed ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     propertiesGrid.replaceChildren();
     if (properties.length === 0) {
       appendText(propertiesGrid, 'p', 'No homes match those filters. Try widening your budget or neighbourhood.', 'empty-state');
@@ -53,6 +54,24 @@ document.addEventListener('DOMContentLoaded', () => {
     try { const response = await fetch(`/api/properties?${params}`); if (!response.ok) throw new Error('Could not load listings'); renderProperties(await response.json()); } catch (error) { propertiesGrid.replaceChildren(); appendText(propertiesGrid, 'p', error.message, 'empty-state'); propertiesCount.textContent = 'Search unavailable'; }
   }
 
+  async function syncAndFetch() {
+    refreshListings.disabled = true;
+    refreshListings.textContent = 'Syncing...';
+    try {
+      const syncResponse = await fetch('/api/sync', { method: 'POST' });
+      if (!syncResponse.ok) {
+        const error = await syncResponse.json();
+        throw new Error(error.detail || 'Live sync unavailable');
+      }
+      await fetchProperties();
+    } catch (error) {
+      propertiesCount.textContent = error.message;
+    } finally {
+      refreshListings.disabled = false;
+      refreshListings.textContent = 'Refresh ↻';
+    }
+  }
+
   async function openCostCalculator(property) {
     try {
       const response = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rent_monthly: property.rent_monthly, deposit: property.deposit, maintenance: property.maintenance, brokerage: 0, agreement_charges: 1500 }) });
@@ -75,5 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeModal() { calcModal.hidden = true; }
   maxRent.addEventListener('input', () => { rentValue.textContent = money(Number(maxRent.value)); }); searchForm.addEventListener('submit', (event) => { event.preventDefault(); fetchProperties(); }); aiForm.addEventListener('submit', askAI); closeModalBtn.addEventListener('click', closeModal); calcModal.addEventListener('click', (event) => { if (event.target === calcModal) closeModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !calcModal.hidden) closeModal(); });
+  refreshListings.addEventListener('click', syncAndFetch); setInterval(syncAndFetch, 5 * 60 * 1000);
   rentValue.textContent = money(Number(maxRent.value)); fetchProperties();
 });
