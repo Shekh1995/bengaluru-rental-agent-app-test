@@ -52,10 +52,10 @@ def _call_search_properties(client: httpx.Client, arguments: Dict[str, Any]) -> 
     raise ListingSyncError("Square Yards MCP returned no structured search result")
 
 
-def _map_listing(item: Dict[str, Any]) -> PropertyListing:
+def _map_listing(item: Dict[str, Any]) -> Optional[PropertyListing]:
     rent = item.get("price")
     if not item.get("id") or not item.get("bhk") or not rent:
-        raise ValueError("listing is missing id, bhk, or price")
+        return None
     area = item.get("locality") or item.get("city") or "Bengaluru"
     furnishing = (item.get("furnishing") or "Not specified").replace("-", " ").title()
     return PropertyListing(
@@ -102,7 +102,7 @@ def sync_square_yards_listings() -> int:
             for page in range(arguments["page"], arguments["page"] + max_pages):
                 arguments["page"] = page
                 payload = _call_search_properties(client, arguments)
-                listings.extend(_map_listing(item) for item in payload.get("listings", []))
+                listings.extend(mapped for item in payload.get("listings", []) if (mapped := _map_listing(item)) is not None)
                 total_pages = int(payload.get("totalPages") or page)
                 if page >= total_pages or not payload.get("listings"):
                     break
